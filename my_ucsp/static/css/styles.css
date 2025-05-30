@@ -1,0 +1,45 @@
+:root {
+    --color-primario: #2C3E50;
+    --color-secundario: #3498DB;
+}
+
+body {
+    background-color: #f8f9fa;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.navbar {
+    background-color: var(--color-primario) !important;
+}
+
+.btn-primario {
+    background-color: var(--color-secundario);
+    color: white !important;
+    border: none;
+    padding: 10px 20px;
+}
+
+.btn-primario:hover {
+    background-color: #2980B9;
+}
+
+.curso-card {
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    background: white;
+    transition: transform 0.2s;
+}
+
+.curso-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+footer {
+    margin-top: auto;
+    padding: 20px 0;
+}
