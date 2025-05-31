@@ -1,47 +1,30 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
-    <!-- Extrae estilos de Bootstrap y de nuestro archivo de estilos -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="{% static 'css/styles.css' %}" rel="stylesheet">
-</head>
-<body>
-    <!-- Método para el inicio de sesión -->
-    <div class="container" style="max-width: 500px; margin-top: 100px;">
-        <div class="card shadow">
-            <div class="card-body">
-                <h3 class="text-center mb-4">Iniciar Sesión</h3>
-                <form method="post" action="{% url 'login' %}">
-                    {% csrf_token %}
-                    <div class="mb-3">
-                        <input type="email" name="email" class="form-control" placeholder="Correo" required>
-                    </div>
-                    <div class="mb-3">
-                        <input type="password" name="password" class="form-control" placeholder="Contraseña" required>
-                    </div>
-                    <button type="submit" class="btn btn-primario w-100">Ingresar</button>
-                </form>
-                {% if messages %}
-                  {% for message in messages %}
-                    <div class="alert alert-danger mt-3">{{ message }}</div>
-                  {% endfor %}
-                {% endif %}
-            </div>
-        </div>
-    </div>
-<div class="text-center mt-3">
-    <small>¿No tienes cuenta? <a href="{% url 'register' %}">Regístrate aquí</a></small>
-</div>
+{% extends 'base_auth.html' %}
 
-{% if messages %}
-  {% for message in messages %}
-    <div class="alert alert-danger mt-3">{{ message }}</div>  <!-- Devuelve el mensaje, en caso haya -->
-  {% endfor %}
-{% endif %}
-    <script src="{% static 'js/scripts.js' %}"></script>
-</body>
-</html>
+{% block title %}Iniciar Sesión{% endblock %}
+
+{% block content %}
+<div class="card shadow">
+  <div class="card-body">
+    <h3 class="text-center mb-4">Iniciar Sesión</h3>
+    <form method="post" action="{% url 'login' %}">
+      {% csrf_token %}
+      <div class="mb-3">
+        <input type="email" name="email" class="form-control" placeholder="Correo" required>
+      </div>
+      <div class="mb-3">
+        <input type="password" name="password" class="form-control" placeholder="Contraseña" required>
+      </div>
+      <button type="submit" class="btn btn-primario w-100">Ingresar</button>
+    </form>
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert alert-danger mt-3">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  </div>
+</div>
+<div class="text-center mt-3">
+  <small>¿No tienes cuenta? <a href="{% url 'register' %}">Regístrate aquí</a></small>
+</div>
+{% endblock %}
+

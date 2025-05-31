@@ -31,16 +31,24 @@ def calendario(request):
 
 @login_required
 def curso_detalle(request, curso_id):
-    curso = get_object_or_404(Curso, pk=curso_id)
-    horarios = Horario.objects.filter(id_curso=curso)
-    tareas   = Tarea.objects.filter(id_curso=curso)
-    return render(request, 'my_ucsp/curso-detalle.html', {
+    curso = get_object_or_404(Curso, id_curso=curso_id)
+
+    # Usa el nombre correcto del campo ForeignKey en Tarea
+    tareas = Tarea.objects.filter(id_curso=curso).order_by('fecha_entrega')
+
+    total_tareas = tareas.count()
+    entregadas = tareas.filter(estado='entregada').count()
+    progreso = int((entregadas / total_tareas) * 100) if total_tareas > 0 else 0
+
+    tareas_pendientes = tareas.exclude(estado='entregada')
+
+    return render(request, 'curso-detalle.html', {
         'curso': curso,
-        'horarios': horarios,
-        'tareas': tareas,
+        'tareas': tareas_pendientes,
+        'total_tareas': total_tareas,
+        'entregadas': entregadas,
+        'progreso': progreso,
     })
-
-
 
 def login_view(request):
     if request.method == "POST":
@@ -145,7 +153,7 @@ def register_view(request):
     if request.method == 'POST':
         username = request.POST.get('username')
         email = request.POST.get('email')
-        password = request.POST.get('password')
+        password = request.POST.get('password1')
         password2 = request.POST.get('password2')
 
         if not all([username, email, password, password2]):
