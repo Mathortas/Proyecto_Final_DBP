@@ -1,53 +1,33 @@
-{% load static %}  
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Calendario</title>
-    <!-- Redirección de los estilos de Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Nuestro archivo de estilos -->
-    <link href="{% static 'css/styles.css' %}" rel="stylesheet">
-    <!-- Extrae el calendario de CSS -->
-    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css' rel='stylesheet'>
-</head>
-<body>
-    <!-- Barra de navegación -->
-    <nav class="navbar navbar-expand-lg navbar-dark">
-        <div class="container">
-            <a class="navbar-brand" href="{% url 'index' %}">Mi Plataforma</a>
-            <div class="collapse navbar-collapse">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link" href="{% url 'calendario' %}">Calendario</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{% url 'perfil' %}">Perfil</a></li>
-                    <li class="nav-item"><a class="nav-link btn-primario" onclick="logout()">Cerrar Sesión</a></li>
-                </ul>
-            </div>
-        </div>
-    </nav>
+{% extends 'base.html' %}
+{% block title %}Calendario{% endblock %}
 
-    <div class="container my-5">
-        <div id="calendario"></div>
-    </div>
+{% block extra_head %}
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet">
+  <style>
+      #calendario {
+          width: 100%;
+          min-height: 600px;
+      }
+  </style>
+{% endblock %}
 
-    <!-- Scripts para el calendario -->
-    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js'></script>
-    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales/es.min.js'></script>
-    <!-- Los scripts que usaremos(Vacío en esta versión ya que no los estamos implementando) -->
-    <script src="{% static 'js/scripts.js' %}"></script>
+{% block content %}
+  <div id="calendario"></div>
+{% endblock %}
 
-    <!-- Script del calendario -->
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const calendarioEl = document.getElementById('calendario');
-            const calendario = new FullCalendar.Calendar(calendarioEl, {
-                initialView: 'dayGridMonth',
-                locale: 'es',
-                events: [
-                ]
-            });
-            calendario.render();
+{% block extra_scripts %}
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales/es.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const calendarioEl = document.getElementById('calendario');
+        const calendario = new FullCalendar.Calendar(calendarioEl, {
+            initialView: 'dayGridMonth',
+            locale: 'es',
+            height: 'auto',
+            events: []  // Puedes insertar eventos aquí desde tu vista
         });
-    </script>
-</body>
-</html>
+        calendario.render();
+    });
+  </script>
+{% endblock %}

@@ -1,13 +1,17 @@
 :root {
-    --color-primario: #2C3E50;
-    --color-secundario: #3498DB;
+    --color-primario: #2C3E50;    /* Azul oscuro */
+    --color-secundario: #3498DB;  /* Azul claro */
+    --color-fondo: #f8f9fa;       /* Gris claro para fondo general */
+    --color-blanco: #ffffff;
+    --color-texto: #2C3E50;
 }
 
 body {
-    background-color: #f8f9fa;
+    background-color: var(--color-fondo);
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    color: var(--color-texto);
 }
 
 .navbar {
@@ -16,9 +20,10 @@ body {
 
 .btn-primario {
     background-color: var(--color-secundario);
-    color: white !important;
+    color: var(--color-blanco) !important;
     border: none;
     padding: 10px 20px;
+    transition: background-color 0.3s ease;
 }
 
 .btn-primario:hover {
@@ -30,8 +35,9 @@ body {
     border-radius: 10px;
     padding: 20px;
     margin-bottom: 20px;
-    background: white;
+    background: var(--color-blanco);
     transition: transform 0.2s;
+    color: var(--color-texto);
 }
 
 .curso-card:hover {
@@ -42,4 +48,13 @@ body {
 footer {
     margin-top: auto;
     padding: 20px 0;
+    background-color: var(--color-primario);
+    color: var(--color-blanco);
+    text-align: center;
 }
+
+#calendario {
+    width: 100%;
+    min-height: 600px;
+}
+
