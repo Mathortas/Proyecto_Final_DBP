@@ -24,7 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-m6lcedw)g%4lg@a&o$g8)ff7icjs$9b2oki%2#qp-rzbmwil7p'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 ALLOWED_HOSTS = ['*']
 
 
@@ -78,12 +78,11 @@ WSGI_APPLICATION = 'MyUCSP.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'freedb_my_ucsp_db',
-        'USER': 'freedb_alberto_21',
-        'PASSWORD': 't5w8*zVNdgd6Zdf',
-        'HOST': 'sql.freedb.tech',
-        'PORT': '3306',
-        'CONN_MAX_AGE': 600,
+        'NAME': os.environ.get('DB_NAME', 'freedb_my_ucsp_db'),
+        'USER': os.environ.get('DB_USER', 'freedb_alberto_21'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', 't5w8*zVNdgd6Zdf'),
+        'HOST': os.environ.get('DB_HOST', 'sql.freedb.tech'),
+        'PORT': os.environ.get('DB_PORT', '3306'),
     }
 }
 
