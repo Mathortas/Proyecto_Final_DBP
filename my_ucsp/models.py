@@ -10,7 +10,7 @@ class Curso(models.Model):
     creditos = models.IntegerField(blank=True, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'curso'
 
 
@@ -23,20 +23,20 @@ class Horario(models.Model):
     aula = models.CharField(max_length=50, blank=True, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'horario'
 
 
 class Matricula(models.Model):
     id_matricula = models.AutoField(primary_key=True)
-    id_usuario = models.ForeignKey('Usuario', on_delete=models.CASCADE, db_column='id_usuario')
+    id_usuario = models.ForeignKey('usuario', on_delete=models.CASCADE, db_column='id_usuario')
     correo_estudiante = models.CharField(max_length=100)
     id_curso = models.ForeignKey(Curso, on_delete=models.CASCADE, db_column='id_curso')
     ciclo = models.CharField(max_length=20)
     fecha_matricula = models.DateField()
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'matricula'
 
 
@@ -49,7 +49,7 @@ class Nota(models.Model):
     id_matricula = models.ForeignKey(Matricula, on_delete=models.CASCADE, db_column='id_matricula')
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'nota'
 
 
@@ -62,7 +62,7 @@ class Tarea(models.Model):
     descripcion = models.TextField(blank=True, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'tarea'
 
 
@@ -73,5 +73,5 @@ class Usuario(models.Model):
     contrasena     = models.CharField(max_length=255)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'usuario'
