@@ -9,6 +9,14 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
+import os
+from dotenv import load_dotenv
+from pathlib import Path
+
+# Cargar el archivo .env
+BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(os.path.join(BASE_DIR, '.env'))
+
 
 from pathlib import Path
 import os
@@ -75,16 +83,19 @@ WSGI_APPLICATION = 'MyUCSP.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+import os
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.environ.get('DB_NAME', 'freedb_my_ucsp_db'),
-        'USER': os.environ.get('DB_USER', 'freedb_alberto_21'),
-        'PASSWORD': os.environ.get('DB_PASSWORD', 't5w8*zVNdgd6Zdf'),
-        'HOST': os.environ.get('DB_HOST', 'sql.freedb.tech'),
-        'PORT': os.environ.get('DB_PORT', '3306'),
+        'NAME': os.environ.get('DB_NAME'),
+        'USER': os.environ.get('DB_USER'),
+        'PASSWORD': os.environ.get('DB_PASSWORD'),
+        'HOST': os.environ.get('DB_HOST'),
+        'PORT': os.environ.get('DB_PORT'),
     }
 }
+
 
 
 
