@@ -8,16 +8,12 @@ from django.http import HttpResponse
 from rdflib import Graph, Namespace, URIRef, Literal
 from rdflib.namespace import RDF, FOAF, XSD
 from django.contrib.auth.models import User
-from .models import Usuario, Matricula, Curso, Horario, Tarea
+from .models import Matricula, Curso, Horario, Tarea, Nota
 
 def index(request): 
     if request.user.is_authenticated:
-        perfil = Usuario.objects.filter(correo=request.user.email).first()
-        if perfil:
-            matriculas = Matricula.objects.filter(id_usuario=perfil)
-            cursos = [m.id_curso for m in matriculas]
-        else:
-            cursos = [] 
+        matriculas = Matricula.objects.filter(id_usuario=request.user)
+        cursos = [m.id_curso for m in matriculas]    
     else:
         cursos = []
 
@@ -34,7 +30,7 @@ def curso_detalle(request, curso_id):
     curso = get_object_or_404(Curso, id_curso=curso_id)
 
     # Usa el nombre correcto del campo ForeignKey en Tarea
-    tareas = Tarea.objects.filter(id_curso=curso).order_by('fecha_entrega')
+    tareas = Tarea.objects.filter(id_usuario=request.user, id_curso=curso).order_by('fecha_entrega')
 
     total_tareas = tareas.count()
     entregadas = tareas.filter(estado='entregada').count()
@@ -52,29 +48,29 @@ def curso_detalle(request, curso_id):
 
 def login_view(request):
     if request.method == "POST":
-        email = request.POST.get('email')
+        email    = request.POST.get('email')
         password = request.POST.get('password')
 
+        # 1. Intentamos encontrar el usuario por email
         try:
             user_obj = User.objects.get(email=email)
         except User.DoesNotExist:
             messages.error(request, "Usuario o contraseña incorrectos.")
             return redirect('login')
 
-        user = authenticate(request, username=user_obj.username, password=password)
+        # 2. Autenticamos usando su username
+        user = authenticate(request,
+                            username=user_obj.username,
+                            password=password)
         if user is not None:
+            # 3. Hacemos login
             login(request, user)
 
-            perfil = Usuario.objects.filter(correo=user.email).first()
+            # 4. Ahora usamos request.user para las matrículas
+            tiene_matriculas = Matricula.objects.filter(
+                id_usuario=request.user
+            ).exists()
 
-            if not perfil:
-                perfil = Usuario.objects.create(
-                    nombre_usuario=user.username,
-                    correo=user.email,
-                    contrasena=password
-                )
-
-            tiene_matriculas = Matricula.objects.filter(id_usuario=perfil).exists()
             if not tiene_matriculas:
                 return redirect('matricular')
 
@@ -83,9 +79,8 @@ def login_view(request):
             messages.error(request, "Usuario o contraseña incorrectos.")
             return redirect('login')
 
+    # GET: mostrar el formulario
     return render(request, 'my_ucsp/login.html')
-
-
 
 
 def logout_view(request):
@@ -95,7 +90,7 @@ def logout_view(request):
 @login_required
 def matricular_cursos(request):
     user = request.user
-    usuario_personal = Usuario.objects.filter(correo=user.email).first()
+    usuario_personal = request.user
     cursos = Curso.objects.all()
 
     if request.method == 'POST':
@@ -105,7 +100,6 @@ def matricular_cursos(request):
             curso = get_object_or_404(Curso, id_curso=id_curso)
             Matricula.objects.create(
                 id_usuario=usuario_personal,
-                correo_estudiante=user.email,
                 id_curso=curso,
                 ciclo=curso.ciclo,
                 fecha_matricula=datetime.date.today()
@@ -125,10 +119,7 @@ def editar_perfil(request):
         user.email = request.POST['email']
         user.save()
 
-        perfil_obj, created = Usuario.objects.update_or_create(       #Actualiza el perfil en la tabla "Usuario" en nuestra base de datos
-            correo=user.email,
-            defaults={'nombre_usuario': user.username}
-        )
+
         messages.success(request, 'Perfil actualizado correctamente.')
         return redirect('perfil')
     return render(request, 'my_ucsp/editar-perfil.html')
@@ -136,52 +127,54 @@ def editar_perfil(request):
 @login_required
 def perfil(request):
     user = request.user
-    perfil_obj = Usuario.objects.filter(correo=user.email).first()
 
-    matriculas = Matricula.objects.filter(correo_estudiante=user.email)
+    matriculas = Matricula.objects.filter(id_usuario=user)
     if matriculas.exists():
         cursos = [m.id_curso for m in matriculas]
     else:
         cursos = Curso.objects.all()
 
     return render(request, 'my_ucsp/perfil.html', {
-        'perfil': perfil_obj,
+        'perfil': user,
         'cursos': cursos,
     })
     
 def register_view(request):
     if request.method == 'POST':
         username = request.POST.get('username')
-        email = request.POST.get('email')
+        email    = request.POST.get('email')
         password = request.POST.get('password1')
-        password2 = request.POST.get('password2')
+        password2= request.POST.get('password2')
 
+        # 1. Validar campos obligatorios
         if not all([username, email, password, password2]):
             messages.error(request, 'Todos los campos son obligatorios.')
             return redirect('register')
 
+        # 2. Verificar que las contraseñas coincidan
         if password != password2:
             messages.error(request, 'Las contraseñas no coinciden.')
             return redirect('register')
 
+        # 3. Comprobar si ya existe un usuario con ese correo
         if User.objects.filter(email=email).exists():
             messages.error(request, 'El correo ya está registrado.')
             return redirect('register')
 
+        # 4. Crear el usuario en Django
         try:
-            user = User.objects.create_user(username=username, email=email, password=password)
-            Usuario.objects.create(
-                nombre_usuario=username,
-                correo=email,
-                contrasena=password
+            user = User.objects.create_user(
+                username=username,
+                email=email,
+                password=password
             )
             messages.success(request, 'Usuario registrado exitosamente.')
             return redirect('login')
-
         except IntegrityError:
             messages.error(request, 'Error al registrar usuario.')
             return redirect('register')
 
+    # GET: mostrar el formulario de registro
     return render(request, 'my_ucsp/register.html')
 
 
@@ -201,6 +194,7 @@ def add_tarea(request, curso_id):
             nombre_tarea=nombre,
             fecha_entrega=fecha,
             estado=estado,
+            id_usuario=request.user,
             id_curso=curso,
             descripcion=descripcion
         )
@@ -238,43 +232,42 @@ def add_nota(request, tarea_id):
 
     return render(request, 'my_ucsp/add_nota.html', {'tarea': tarea})
 
+
 @login_required
 def generar_rdf_usuario(request):
-    usuario = Usuario.objects.get(correo=request.user.email)
-    g = Graph()
+    usuario = request.user
 
-    EX = Namespace("http://example.org/ucsp/")
+    g = Graph()
+    EX     = Namespace("http://example.org/ucsp/")
     SCHEMA = Namespace("http://schema.org/")
     g.bind("ex", EX)
     g.bind("foaf", FOAF)
     g.bind("schema", SCHEMA)
 
-    user_uri = URIRef(EX[f"usuario{usuario.id_usuario}"])
-    g.add((user_uri, RDF.type, FOAF.Person))
-    g.add((user_uri, FOAF.name, Literal(usuario.nombre_usuario, lang='es')))
-    g.add((user_uri, SCHEMA.email, Literal(usuario.correo)))
+    u_uri = URIRef(EX[f"usuario{usuario.id}"])
+    g.add((u_uri, RDF.type, FOAF.Person))
+    g.add((u_uri, FOAF.name, Literal(usuario.get_full_name(), lang='es')))
+    g.add((u_uri, SCHEMA.email, Literal(usuario.email)))
 
-    matriculas = Matricula.objects.filter(id_usuario=usuario)
-    for matricula in matriculas:
-        curso = matricula.id_curso
-        curso_uri = URIRef(EX[f"curso{curso.id_curso}"])
-        g.add((user_uri, EX.matriculadoEn, curso_uri))
-        g.add((curso_uri, RDF.type, SCHEMA.Course))
-        g.add((curso_uri, SCHEMA.name, Literal(curso.nombre, lang='es')))
-        g.add((curso_uri, SCHEMA.courseCode, Literal(curso.ciclo)))
+    for m in Matricula.objects.filter(id_usuario=usuario):
+        curso = m.id_curso
+        c_uri = URIRef(EX[f"curso{curso.id_curso}"])
+        g.add((u_uri, EX.matriculadoEn, c_uri))
+        g.add((c_uri, RDF.type, SCHEMA.Course))
+        g.add((c_uri, SCHEMA.name, Literal(curso.nombre, lang='es')))
+        g.add((c_uri, SCHEMA.courseCode, Literal(curso.ciclo)))
 
-        tareas = Tarea.objects.filter(id_curso=curso)
-        for tarea in tareas:
-            tarea_uri = URIRef(EX[f"tarea{tarea.id_tarea}"])
-            g.add((curso_uri, EX.tieneTarea, tarea_uri))
-            g.add((tarea_uri, RDF.type, SCHEMA.Task))
-            g.add((tarea_uri, SCHEMA.name, Literal(tarea.nombre_tarea, lang='es')))
-            g.add((tarea_uri, SCHEMA.dueDate, Literal(tarea.fecha_entrega, datatype=XSD.date)))
+        for t in Tarea.objects.filter(id_curso=curso):
+            t_uri = URIRef(EX[f"tarea{t.id_tarea}"])
+            g.add((c_uri, EX.tieneTarea, t_uri))
+            g.add((t_uri, RDF.type, SCHEMA.Task))
+            g.add((t_uri, SCHEMA.name, Literal(t.nombre_tarea, lang='es')))
+            g.add((t_uri, SCHEMA.dueDate, Literal(t.fecha_entrega, datatype=XSD.date)))
 
     rdf_data = g.serialize(format='xml')
-    return HttpResponse(
-    rdf_data,
-    content_type='application/rdf+xml',
-    headers={'Content-Disposition': 'attachment; filename="mi_perfil.rdf"'}
-)
 
+    return HttpResponse(
+        rdf_data,
+        content_type='application/rdf+xml',
+        headers={'Content-Disposition': 'attachment; filename="mi_perfil_ucsp.rdf"'}
+    )

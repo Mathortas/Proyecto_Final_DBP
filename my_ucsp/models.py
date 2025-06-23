@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User as Usuario
 
 
 class Curso(models.Model):
@@ -29,8 +30,7 @@ class Horario(models.Model):
 
 class Matricula(models.Model):
     id_matricula = models.AutoField(primary_key=True)
-    id_usuario = models.ForeignKey('usuario', on_delete=models.CASCADE, db_column='id_usuario')
-    correo_estudiante = models.CharField(max_length=100)
+    id_usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, db_column='id_usuario')
     id_curso = models.ForeignKey(Curso, on_delete=models.CASCADE, db_column='id_curso')
     ciclo = models.CharField(max_length=20)
     fecha_matricula = models.DateField()
@@ -58,6 +58,7 @@ class Tarea(models.Model):
     nombre_tarea = models.CharField(max_length=100)
     fecha_entrega = models.DateField()
     estado = models.CharField(max_length=20)
+    id_usuario = models.ForeignKey(Usuario, on_delete=models.SET_NULL, null=True, db_column="id_usuario")
     id_curso = models.ForeignKey(Curso, on_delete=models.CASCADE, db_column='id_curso')
     descripcion = models.TextField(blank=True, null=True)
 
@@ -65,13 +66,3 @@ class Tarea(models.Model):
         managed = True
         db_table = 'tarea'
 
-
-class Usuario(models.Model):
-    id_usuario     = models.AutoField(primary_key=True, db_column='id_usuario')
-    nombre_usuario = models.CharField(max_length=100)
-    correo         = models.CharField(unique=True, max_length=100)
-    contrasena     = models.CharField(max_length=255)
-
-    class Meta:
-        managed = True
-        db_table = 'usuario'
