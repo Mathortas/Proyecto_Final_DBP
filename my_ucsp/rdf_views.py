@@ -4,14 +4,12 @@ from django.contrib.auth.decorators import login_required
 from rdflib import Graph, Namespace, URIRef, Literal
 from rdflib.namespace import RDF, FOAF, XSD
 
-from .models import Usuario, Matricula, Tarea
+from django.contrib.auth.models import User
+from .models import Matricula, Tarea
 
 @login_required
 def generar_rdf_usuario(request):
-    try:
-        usuario = Usuario.objects.get(correo=request.user.email)
-    except Usuario.DoesNotExist:
-        return HttpResponse("Usuario no encontrado.", status=404)
+    usuario = request.user
 
     g = Graph()
     EX     = Namespace("http://example.org/ucsp/")
@@ -20,10 +18,10 @@ def generar_rdf_usuario(request):
     g.bind("foaf", FOAF)
     g.bind("schema", SCHEMA)
 
-    u_uri = URIRef(EX[f"usuario{usuario.id_usuario}"])
+    u_uri = URIRef(EX[f"usuario{usuario.id}"])
     g.add((u_uri, RDF.type, FOAF.Person))
-    g.add((u_uri, FOAF.name, Literal(usuario.nombre_usuario, lang='es')))
-    g.add((u_uri, SCHEMA.email, Literal(usuario.correo)))
+    g.add((u_uri, FOAF.name, Literal(usuario.get_full_name(), lang='es')))
+    g.add((u_uri, SCHEMA.email, Literal(usuario.email)))
 
     for m in Matricula.objects.filter(id_usuario=usuario):
         curso = m.id_curso
