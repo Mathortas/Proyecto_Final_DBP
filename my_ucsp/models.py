@@ -44,14 +44,14 @@ class Nota(models.Model):
     id_nota = models.AutoField(primary_key=True)
     nombre_nota = models.CharField(max_length=100)
     nota_obtenida = models.DecimalField(max_digits=5, decimal_places=2)
-    permanente_promedio = models.CharField(max_length=20)
     peso_porcentaje = models.DecimalField(max_digits=5, decimal_places=2)
     id_matricula = models.ForeignKey(Matricula, on_delete=models.CASCADE, db_column='id_matricula')
 
     class Meta:
         managed = True
         db_table = 'nota'
-
+    def __str__(self):
+        return f"{self.nombre_nota} - {self.nota_obtenida} ({self.peso_porcentaje}%)"
 
 class Tarea(models.Model):
     id_tarea = models.AutoField(primary_key=True)
@@ -62,7 +62,29 @@ class Tarea(models.Model):
     id_curso = models.ForeignKey(Curso, on_delete=models.CASCADE, db_column='id_curso')
     descripcion = models.TextField(blank=True, null=True)
 
+    # ✅ NUEVOS CAMPOS
+    peso_porcentaje = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=0.00,
+        help_text="Peso (%) que aporta esta tarea a la nota principal"
+    )
+
+    CATEGORIAS = [
+        ('P1', 'Permanente 1'),
+        ('P2', 'Permanente 2'),
+        ('PAR', 'Parcial'),
+        ('FIN', 'Final'),
+    ]
+    categoria = models.CharField(
+        max_length=3,
+        choices=CATEGORIAS,
+        default='P1',
+        help_text="Categoría principal a la que pertenece esta tarea"
+    )
+
     class Meta:
         managed = True
         db_table = 'tarea'
+    
 

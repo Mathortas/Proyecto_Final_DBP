@@ -15,7 +15,7 @@ urlpatterns = [
     
     path('calendario/', views.calendario, name='calendario'),
 
-    path('curso/<int:curso_id>/', views.curso_detalle, name='curso-detalle'),
+    path('curso/<int:id_curso>/', views.curso_detalle, name='curso-detalle'),
 
     path('editar-perfil/', views.editar_perfil, name='editar-perfil'),
     
@@ -23,7 +23,7 @@ urlpatterns = [
 
     path('matricular/', views.matricular_cursos, name='matricular'),
 
-    path('curso/<int:curso_id>/add-tarea/', views.add_tarea, name='add-tarea'),
+    path('curso/<int:id_curso>/add-tarea/', views.add_tarea, name='add-tarea'),
     
     path('tarea/<int:tarea_id>/update/', views.update_tarea, name='update-tarea'),
 
@@ -33,4 +33,8 @@ urlpatterns = [
 
     path('perfil/rdf/', views.generar_rdf_usuario, name='generar_rdf_usuario'),
       
+    path('tarea/<int:pk>/editar/', views.editar_tarea, name='editar_tarea'),
+
+    path('curso/<int:id_curso>/notas/', views.notas_curso, name='notas_curso'),
+
 ]
