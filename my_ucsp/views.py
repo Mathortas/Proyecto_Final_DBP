@@ -9,6 +9,7 @@ from rdflib import Graph, Namespace, URIRef, Literal
 from rdflib.namespace import RDF, FOAF, XSD
 from django.contrib.auth.models import User
 from .models import Matricula, Curso, Horario, Tarea, Nota
+from .forms import TareaForm
 
 def index(request): 
     if request.user.is_authenticated:
@@ -26,8 +27,8 @@ def calendario(request):
 
 
 @login_required
-def curso_detalle(request, curso_id):
-    curso = get_object_or_404(Curso, id_curso=curso_id)
+def curso_detalle(request, id_curso):
+    curso = get_object_or_404(Curso, id_curso=id_curso)
 
     # Usa el nombre correcto del campo ForeignKey en Tarea
     tareas = Tarea.objects.filter(id_usuario=request.user, id_curso=curso).order_by('fecha_entrega')
@@ -180,31 +181,24 @@ def register_view(request):
 
 
 @login_required
-def add_tarea(request, curso_id):
-    curso = get_object_or_404(Curso, pk=curso_id)
+def add_tarea(request, id_curso):
+    curso = get_object_or_404(Curso, pk=id_curso)
+
     if request.method == 'POST':
-        nombre    = request.POST['nombre']
-        fecha     = request.POST['fecha']
-        tipo      = request.POST['tipo']   # NO SE GUARDA EN BD
-        estado    = request.POST['estado']
-        descripcion = request.POST.get('descripcion', '')
+        form = TareaForm(request.POST)
+        if form.is_valid():
+            tarea = form.save(commit=False)
+            tarea.id_curso = curso
+            tarea.id_usuario = request.user
+            tarea.save()
+            return redirect('curso-detalle', id_curso=id_curso)
+    else:
+        form = TareaForm()
 
-        # Creamos la tarea/prueba (en la tabla Tarea actual)
-        Tarea.objects.create(
-            nombre_tarea=nombre,
-            fecha_entrega=fecha,
-            estado=estado,
-            id_usuario=request.user,
-            id_curso=curso,
-            descripcion=descripcion
-        )
-
-        messages.success(request, f'{tipo.capitalize()} añadida correctamente.')
-        return redirect('curso-detalle', curso_id=curso.id_curso)
-
-    return render(request, 'my_ucsp/add_tarea.html', {'curso': curso})
-
-
+    return render(request, 'add_tarea.html', {
+        'form': form,
+        'curso': curso
+    })
 
 @login_required
 def update_tarea(request, tarea_id):
@@ -217,7 +211,25 @@ def update_tarea(request, tarea_id):
             tarea.estado = nuevo_estado
             tarea.save()
             messages.success(request, 'Estado actualizado.')
-    return redirect('curso-detalle', curso_id=tarea.id_curso.id_curso)
+    return redirect('curso-detalle', id_curso=tarea.id_curso.id_curso)
+
+@login_required
+def editar_tarea(request, pk):
+    tarea = get_object_or_404(Tarea, pk=pk, id_usuario=request.user)
+
+    if request.method == 'POST':
+        form = TareaForm(request.POST, instance=tarea)
+        if form.is_valid():
+            form.save()
+            return redirect('curso-detalle', id_curso=tarea.id_curso.id_curso)
+    else:
+        form = TareaForm(instance=tarea)
+
+    return render(request, 'my_ucsp/editar_tarea.html', {
+        'form': form,
+        'tarea': tarea
+    })
+
 
 @login_required
 def add_nota(request, tarea_id):
@@ -228,9 +240,18 @@ def add_nota(request, tarea_id):
         tarea.nota = nota
         tarea.save()
         messages.success(request, 'Nota añadida correctamente.')
-        return redirect('curso-detalle', curso_id=tarea.id_curso.id_curso)
+        return redirect('curso-detalle', id_curso=tarea.id_curso.id_curso)
 
     return render(request, 'my_ucsp/add_nota.html', {'tarea': tarea})
+
+from django.shortcuts import render, get_object_or_404
+from .models import Curso
+
+def notas_curso(request, id_curso):
+    curso = get_object_or_404(Curso, id_curso=id_curso)
+    return render(request, 'notas.html', {
+        'curso': curso
+    })
 
 
 @login_required

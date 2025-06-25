@@ -5,7 +5,14 @@
 
 {% block content %}
 <div class="container my-5">
-  <h2 class="mb-4">{{ curso.nombre }}</h2>
+  <!-- Título y botón de notas -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">{{ curso.nombre }}</h2>
+    <a href="{% url 'notas_curso' curso.id_curso %}" class="btn btn-outline-secondary">
+      Notas
+    </a>
+  </div>
+
   <p><strong>Ciclo:</strong> {{ curso.ciclo }}</p>
   <p><strong>Modalidad:</strong> {{ curso.modalidad }}</p>
   <p>{{ curso.descripcion }}</p>
@@ -39,18 +46,56 @@
       <h4 class="card-title">Próximas Tareas</h4>
       <ul class="list-group list-group-flush">
         {% for tarea in tareas %}
-          <li class="list-group-item d-flex justify-content-between align-items-center">
-            <div>
-              <strong>{{ tarea.nombre_tarea }}</strong><br>
-              Entrega: {{ tarea.fecha_entrega|date:"d/m/Y" }}
+          <li class="list-group-item">
+            <div class="row align-items-center">
+              <!-- Columna principal: título, fecha y descripción -->
+              <div class="col-12 col-md-8">
+                <strong>{{ tarea.nombre_tarea }}</strong><br>
+                <small class="text-muted">Entrega: {{ tarea.fecha_entrega|date:"d/m/Y" }}</small>
+
+                {% if tarea.descripcion %}
+                  <p class="mt-2 mb-0 small text-muted">
+                    <!-- Versión corta -->
+                    <span id="short-desc-{{ tarea.id_tarea }}">
+                      {{ tarea.descripcion|truncatechars:60 }}{% if tarea.descripcion|length > 60 %}...{% endif %}
+                      {% if tarea.descripcion|length > 60 %}
+                        <a href="javascript:void(0);" 
+                           onclick="toggleDescripcion({{ tarea.id_tarea }})" 
+                           class="text-primary">Ver más</a>
+                      {% endif %}
+                    </span>
+                    <!-- Versión larga oculta -->
+                    <span id="full-desc-{{ tarea.id_tarea }}" style="display:none;">
+                      {{ tarea.descripcion }}
+                      <a href="javascript:void(0);" 
+                         onclick="toggleDescripcion({{ tarea.id_tarea }})" 
+                         class="text-primary"> Ver menos</a>
+                    </span>
+                  </p>
+                {% endif %}
+              </div>
+
+              <!-- Columna de acciones -->
+              <div class="col-12 col-md-4 d-flex justify-content-md-end align-items-center mt-2 mt-md-0">
+                <a href="{% url 'editar_tarea' tarea.id_tarea %}" 
+                   class="btn btn-sm btn-outline-primary me-2">
+                  Editar
+                </a>
+                <form method="post" action="{% url 'update-tarea' tarea.id_tarea %}" class="m-0 p-0">
+                  {% csrf_token %}
+                  <select name="estado"
+                          onchange="this.form.submit()"
+                          class="form-select form-select-sm">
+                    <option value="pendiente" {% if tarea.estado == 'pendiente' %}selected{% endif %}>
+                      Pendiente
+                    </option>
+                    <option value="entregada" {% if tarea.estado == 'entregada' %}selected{% endif %}>
+                      Entregada
+                    </option>
+                  </select>
+                </form>
+              </div>
             </div>
-            <form method="post" action="{% url 'update-tarea' tarea.id_tarea %}">
-              {% csrf_token %}
-              <select name="estado" onchange="this.form.submit()" class="form-select form-select-sm">
-                <option value="pendiente" {% if tarea.estado == 'pendiente' %}selected{% endif %}>Pendiente</option>
-                <option value="entregada" {% if tarea.estado == 'entregada' %}selected{% endif %}>Entregada</option>
-              </select>
-            </form>
           </li>
         {% empty %}
           <li class="list-group-item">No hay tareas próximas.</li>
@@ -59,5 +104,23 @@
     </div>
   </div>
 </div>
+
+<!-- Script para toggle manual de descripción -->
+<script>
+  function toggleDescripcion(id) {
+    const shortDesc = document.getElementById(`short-desc-${id}`);
+    const fullDesc  = document.getElementById(`full-desc-${id}`);
+    if (shortDesc.style.display === "none") {
+      shortDesc.style.display = "inline";
+      fullDesc.style.display  = "none";
+    } else {
+      shortDesc.style.display = "none";
+      fullDesc.style.display  = "inline";
+    }
+  }
+</script>
 {% endblock %}
+
+
+
 

@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Notas - {{ curso.nombre }}{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Notas de {{ curso.nombre }}</h2>
+    <a href="{% url 'curso-detalle' curso.id_curso %}" class="btn btn-outline-primary">← Volver al curso</a>
+  </div>
+
+  <div id="notas-container">
+    <!-- Las filas de notas se agregan dinámicamente -->
+  </div>
+
+  <button class="btn btn-success mt-3" onclick="agregarNota()">Agregar Nota</button>
+</div>
+
+<script>
+  let notaId = 0;
+
+  function agregarNota() {
+    const container = document.getElementById("notas-container");
+    const row = document.createElement("div");
+    row.className = "row mb-2 align-items-center";
+    row.id = `nota-${notaId}`;
+
+    row.innerHTML = `
+      <div class="col-md-4">
+        <input type="number" class="form-control" placeholder="Nota" min="0" max="20" step="0.1">
+      </div>
+      <div class="col-md-4">
+        <input type="number" class="form-control" placeholder="Peso (%)" min="0" max="100" step="1">
+      </div>
+      <div class="col-md-2">
+        <button class="btn btn-danger" onclick="eliminarNota(${notaId})">🗑</button>
+      </div>
+      <div class="col-md-2 text-end">
+        <button class="btn btn-outline-secondary" onclick="toggleBloqueo(this)">🔓</button>
+      </div>
+    `;
+
+    container.appendChild(row);
+    notaId++;
+  }
+
+  function eliminarNota(id) {
+    const row = document.getElementById(`nota-${id}`);
+    if (row) row.remove();
+  }
+
+  function toggleBloqueo(btn) {
+    const row = btn.closest('.row');
+    const inputs = row.querySelectorAll('input');
+    const isDisabled = inputs[0].disabled;
+
+    inputs.forEach(input => input.disabled = !isDisabled);
+    btn.innerHTML = isDisabled ? '🔒' : '🔓';
+  }
+
+  // Agrega 2 notas por defecto al cargar
+  document.addEventListener('DOMContentLoaded', () => {
+    agregarNota();
+    agregarNota();
+  });
+</script>
+{% endblock %}
