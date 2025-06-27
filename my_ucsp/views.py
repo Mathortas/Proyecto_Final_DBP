@@ -8,7 +8,7 @@ from django.http import HttpResponse
 from rdflib import Graph, Namespace, URIRef, Literal
 from rdflib.namespace import RDF, FOAF, XSD
 from django.contrib.auth.models import User
-from .models import Matricula, Curso, Horario, Tarea, Nota
+from .models import Matricula, Curso, Horario, Tarea, Nota, CategoriaPrincipal
 from .forms import TareaForm
 
 def index(request): 
@@ -30,14 +30,16 @@ def calendario(request):
 def curso_detalle(request, id_curso):
     curso = get_object_or_404(Curso, id_curso=id_curso)
 
-    # Usa el nombre correcto del campo ForeignKey en Tarea
+    # Obtener todas las tareas del curso para este usuario
     tareas = Tarea.objects.filter(id_usuario=request.user, id_curso=curso).order_by('fecha_entrega')
 
+    # Contadores y progreso
     total_tareas = tareas.count()
-    entregadas = tareas.filter(estado='entregada').count()
+    entregadas = tareas.filter(estado='ENTREGADO').count()
     progreso = int((entregadas / total_tareas) * 100) if total_tareas > 0 else 0
 
-    tareas_pendientes = tareas.exclude(estado='entregada')
+    # Solo mostrar tareas que no estén entregadas
+    tareas_pendientes = tareas.exclude(estado='ENTREGADO')
 
     return render(request, 'curso-detalle.html', {
         'curso': curso,
@@ -46,6 +48,7 @@ def curso_detalle(request, id_curso):
         'entregadas': entregadas,
         'progreso': progreso,
     })
+
 
 def login_view(request):
     if request.method == "POST":
@@ -191,6 +194,7 @@ def add_tarea(request, id_curso):
             tarea.id_curso = curso
             tarea.id_usuario = request.user
             tarea.save()
+            messages.success(request, 'Tarea añadida correctamente.')
             return redirect('curso-detalle', id_curso=id_curso)
     else:
         form = TareaForm()
@@ -204,14 +208,43 @@ def add_tarea(request, id_curso):
 def update_tarea(request, tarea_id):
     tarea = get_object_or_404(Tarea, pk=tarea_id)
     if request.method == 'POST':
-        nuevo_estado = request.POST['estado']
-        if nuevo_estado not in ['pendiente', 'entregada']:
-            messages.error(request, 'Estado no válido.')
-        else:
-            tarea.estado = nuevo_estado
-            tarea.save()
-            messages.success(request, 'Estado actualizado.')
+        # Si aún no nos enviaron la nota, mostramos el formulario
+        if 'nota_obtenida' not in request.POST:
+            return render(request, 'my_ucsp/add_nota.html', {'tarea': tarea})
+
+        # Ya viene la nota, la procesamos:
+        nota_val = request.POST['nota_obtenida']
+        try:
+            nota_val = float(nota_val)
+        except ValueError:
+            messages.error(request, 'Nota inválida.')
+            return redirect('curso-detalle', id_curso=tarea.id_curso.id_curso)
+
+        tarea.estado = 'ENTREGADO'
+        tarea.save()
+
+        matricula = Matricula.objects.filter(
+            id_usuario=request.user,
+            id_curso=tarea.id_curso
+        ).first()
+
+        Nota.objects.update_or_create(
+            id_tarea=tarea,
+            id_matricula=matricula,
+            defaults={
+                'id_categoria': tarea.id_categoria,
+                'nombre_nota': tarea.nombre_tarea,
+                'nota_obtenida': nota_val,
+                'peso_porcentaje': tarea.peso_porcentaje,
+            }
+        )
+
+        messages.success(request, 'Tarea entregada y nota registrada.')
+        return redirect('curso-detalle', id_curso=tarea.id_curso.id_curso)
+
+    # Si alguien llama GET o un estado inválido, redirigimos
     return redirect('curso-detalle', id_curso=tarea.id_curso.id_curso)
+
 
 @login_required
 def editar_tarea(request, pk):
@@ -247,11 +280,42 @@ def add_nota(request, tarea_id):
 from django.shortcuts import render, get_object_or_404
 from .models import Curso
 
+def simular_nota(request):
+    if request.method == 'POST':
+        # Aquí procesas request.POST['nota'], guardas en sesión, etc.
+        messages.success(request, 'Simulación guardada.')
+    return render(request, 'tareas/add_nota.html')
+
+
 def notas_curso(request, id_curso):
+    # 1) Obtén el curso
     curso = get_object_or_404(Curso, id_curso=id_curso)
+
+    # 2) Busca la matrícula de este usuario en ese curso
+    matricula = get_object_or_404(
+        Matricula,
+        id_usuario=request.user,
+        id_curso=curso
+    )
+
+    # 3) Carga todas las categorías ordenadas
+    categorias = CategoriaPrincipal.objects.order_by('id_categoria')
+
+    # 4) Agrupa las notas por categoría
+    notas_por_categoria = []
+    for cat in categorias:
+        notas = Nota.objects.filter(
+            id_matricula=matricula,
+            id_categoria=cat
+        ).select_related('id_tarea')
+        notas_por_categoria.append((cat, notas))
+
+    # 5) Renderiza pasando el nuevo contexto
     return render(request, 'notas.html', {
-        'curso': curso
+        'curso': curso,
+        'notas_por_categoria': notas_por_categoria,
     })
+
 
 
 @login_required
