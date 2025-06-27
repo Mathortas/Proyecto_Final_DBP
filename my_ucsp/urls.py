@@ -1,3 +1,4 @@
+from django.urls import include
 from django.urls import path
 from . import views  #Para vincular una función en "views.py" con su respectiva url
 from . import rdf_views
@@ -37,4 +38,7 @@ urlpatterns = [
 
     path('curso/<int:id_curso>/notas/', views.notas_curso, name='notas_curso'),
 
+    path('api/', include('my_ucsp.api_urls')),
+
 ]
+    
