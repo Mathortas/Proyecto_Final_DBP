@@ -30,8 +30,18 @@ class Horario(models.Model):
 
 class Matricula(models.Model):
     id_matricula = models.AutoField(primary_key=True)
-    id_usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, db_column='id_usuario')
-    id_curso = models.ForeignKey(Curso, on_delete=models.CASCADE, db_column='id_curso')
+    id_usuario = models.ForeignKey(
+        Usuario,
+        on_delete=models.CASCADE,
+        db_column='id_usuario',
+        related_name='matriculas'
+    )
+    id_curso = models.ForeignKey(
+        Curso,
+        on_delete=models.CASCADE,
+        db_column='id_curso',
+        related_name='matriculas'
+    )
     ciclo = models.CharField(max_length=20)
     fecha_matricula = models.DateField()
 
@@ -39,30 +49,59 @@ class Matricula(models.Model):
         managed = True
         db_table = 'matricula'
 
+    def __str__(self):
+        return f"{self.id_usuario.username} - {self.id_curso.nombre} ({self.ciclo})"
 
-class Nota(models.Model):
-    id_nota = models.AutoField(primary_key=True)
-    nombre_nota = models.CharField(max_length=100)
-    nota_obtenida = models.DecimalField(max_digits=5, decimal_places=2)
-    peso_porcentaje = models.DecimalField(max_digits=5, decimal_places=2)
-    id_matricula = models.ForeignKey(Matricula, on_delete=models.CASCADE, db_column='id_matricula')
+
+class CategoriaPrincipal(models.Model):
+    id_categoria = models.AutoField(primary_key=True)
+    nombre = models.CharField(max_length=50, unique=True)
 
     class Meta:
         managed = True
-        db_table = 'nota'
+        db_table = 'categoria_principal'
+
     def __str__(self):
-        return f"{self.nombre_nota} - {self.nota_obtenida} ({self.peso_porcentaje}%)"
+        return self.nombre
 
 class Tarea(models.Model):
     id_tarea = models.AutoField(primary_key=True)
     nombre_tarea = models.CharField(max_length=100)
-    fecha_entrega = models.DateField()
-    estado = models.CharField(max_length=20)
-    id_usuario = models.ForeignKey(Usuario, on_delete=models.SET_NULL, null=True, db_column="id_usuario")
-    id_curso = models.ForeignKey(Curso, on_delete=models.CASCADE, db_column='id_curso')
     descripcion = models.TextField(blank=True, null=True)
+    fecha_entrega = models.DateField()
 
-    # ✅ NUEVOS CAMPOS
+    ESTADOS = [
+        ('PENDIENTE', 'Pendiente'),
+        ('ENTREGADO', 'Entregado'),
+        ('RETRASADO', 'Retrasado'),
+    ]
+    estado = models.CharField(
+        max_length=20,
+        choices=ESTADOS,
+        default='PENDIENTE'
+    )
+
+    id_usuario = models.ForeignKey(
+        Usuario,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        db_column='id_usuario',
+        related_name='tareas'
+    )
+    id_curso = models.ForeignKey(
+        Curso,
+        on_delete=models.CASCADE,
+        db_column='id_curso',
+        related_name='tareas'
+    )
+    id_categoria = models.ForeignKey(
+        CategoriaPrincipal,
+        on_delete=models.RESTRICT,
+        db_column='id_categoria',
+        related_name='tareas',
+        help_text="Categoría principal a la que pertenece esta tarea"
+    )
     peso_porcentaje = models.DecimalField(
         max_digits=5,
         decimal_places=2,
@@ -70,21 +109,49 @@ class Tarea(models.Model):
         help_text="Peso (%) que aporta esta tarea a la nota principal"
     )
 
-    CATEGORIAS = [
-        ('P1', 'Permanente 1'),
-        ('P2', 'Permanente 2'),
-        ('PAR', 'Parcial'),
-        ('FIN', 'Final'),
-    ]
-    categoria = models.CharField(
-        max_length=3,
-        choices=CATEGORIAS,
-        default='P1',
-        help_text="Categoría principal a la que pertenece esta tarea"
-    )
-
     class Meta:
         managed = True
         db_table = 'tarea'
-    
+
+    def __str__(self):
+        return f"{self.nombre_tarea} [{self.id_categoria.nombre}] ({self.peso_porcentaje}%)"
+
+
+class Nota(models.Model):
+    id_nota = models.AutoField(primary_key=True)
+    id_categoria = models.ForeignKey(
+        CategoriaPrincipal,
+        on_delete=models.RESTRICT,
+        db_column='id_categoria',
+        related_name='notas',
+        help_text="Nota principal correspondiente"
+    )
+    id_tarea = models.ForeignKey(
+        Tarea,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        db_column='id_tarea',
+        related_name='notas',
+        help_text="Subnota vinculada (tarea, trabajo, etc.)"
+    )
+    id_matricula = models.ForeignKey(
+        Matricula,
+        on_delete=models.CASCADE,
+        db_column='id_matricula',
+        related_name='notas'
+    )
+    nombre_nota = models.CharField(max_length=100, help_text="Título descriptivo de la subnota o examen")
+    nota_obtenida = models.DecimalField(max_digits=5, decimal_places=2)
+    peso_porcentaje = models.DecimalField(max_digits=5, decimal_places=2)
+
+    class Meta:
+        managed = True
+        db_table = 'nota'
+
+    def __str__(self):
+        if self.id_tarea:
+            return f"{self.id_tarea.nombre_tarea}: {self.nota_obtenida} ({self.peso_porcentaje}%)"
+        return f"{self.id_categoria.nombre}: {self.nota_obtenida} ({self.peso_porcentaje}%)"
+
 

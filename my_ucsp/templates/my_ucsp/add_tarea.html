@@ -30,11 +30,6 @@
                 </div>
 
                 <div class="mb-3">
-                    <label for="{{ form.estado.id_for_label }}" class="form-label">Estado</label>
-                    {{ form.estado|add_class:"form-select" }}
-                </div>
-
-                <div class="mb-3">
                     <label for="{{ form.descripcion.id_for_label }}" class="form-label">Descripción</label>
                     {{ form.descripcion|add_class:"form-control" }}
                 </div>
@@ -45,8 +40,8 @@
                 </div>
 
                 <div class="mb-3">
-                    <label for="{{ form.categoria.id_for_label }}" class="form-label">Nota Principal</label>
-                    {{ form.categoria|add_class:"form-select" }}
+                    <label for="{{ form.id_categoria.id_for_label }}" class="form-label">Nota Principal</label>
+                    {{ form.id_categoria|add_class:"form-select" }}
                 </div>
 
                 <button type="submit" class="btn btn-success w-100">Añadir</button>
@@ -54,12 +49,10 @@
 
             {% if messages %}
               {% for message in messages %}
-                <div class="alert alert-success mt-3">{{ message }}</div>
+                <div class="alert alert-{{ message.tags }} mt-3">{{ message }}</div>
               {% endfor %}
             {% endif %}
         </div>
     </div>
 </div>
 {% endblock %}
-
-
