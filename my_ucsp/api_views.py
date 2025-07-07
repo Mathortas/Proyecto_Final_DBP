@@ -30,9 +30,15 @@ class MatriculaViewSet(viewsets.ModelViewSet):
         return Matricula.objects.filter(id_usuario=self.request.user)
 
 class TareaViewSet(viewsets.ModelViewSet):
-    queryset = Tarea.objects.all()
     serializer_class = TareaSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Tarea.objects.filter(id_usuario=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(id_usuario=self.request.user)
+
 
 
 
