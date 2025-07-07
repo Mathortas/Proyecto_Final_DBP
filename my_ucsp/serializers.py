@@ -29,7 +29,7 @@ class TareaSerializer(serializers.ModelSerializer):
         model = Tarea
         fields = [
             'id_tarea', 'nombre_tarea', 'descripcion', 'fecha_entrega',
-            'estado', 'id_usuario', 'id_curso',
+            'estado', 'id_curso',
             'id_categoria', 'peso_porcentaje'
         ]
 
