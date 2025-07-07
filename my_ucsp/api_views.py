@@ -34,10 +34,14 @@ class TareaViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Tarea.objects.filter(id_usuario=self.request.user)
+        user = self.request.user
+        if not user or not user.is_authenticated:
+            return Tarea.objects.none()
+        return Tarea.objects.filter(id_usuario=user)
 
     def perform_create(self, serializer):
         serializer.save(id_usuario=self.request.user)
+
 
 class NotaViewSet(viewsets.ModelViewSet):
     queryset = Nota.objects.all()
