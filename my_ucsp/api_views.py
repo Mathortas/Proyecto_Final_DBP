@@ -34,16 +34,7 @@ class TareaViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        if not hasattr(self, 'request') or self.request is None:
-            return Tarea.objects.none()
-        if not self.request.user.is_authenticated:
-            return Tarea.objects.none()
         return Tarea.objects.filter(id_usuario=self.request.user)
-
-    def perform_create(self, serializer):
-        serializer.save(id_usuario=self.request.user)
-
-
 
 
 class NotaViewSet(viewsets.ModelViewSet):
