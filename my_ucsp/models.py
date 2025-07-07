@@ -53,9 +53,28 @@ class Matricula(models.Model):
         return f"{self.id_usuario.username} - {self.id_curso.nombre} ({self.ciclo})"
 
 
+from django.db import models
+
 class CategoriaPrincipal(models.Model):
+    TIPO_CATEGORIA_CHOICES = [
+        ('PRINCIPAL', 'Principal'),
+        ('SECUNDARIA', 'Secundaria'),
+    ]
+
     id_categoria = models.AutoField(primary_key=True)
     nombre = models.CharField(max_length=50, unique=True)
+    peso_porcentaje = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=0.00,
+        help_text="Peso porcentual de la categoría en la nota final"
+    )
+    tipo = models.CharField(
+        max_length=20,
+        choices=TIPO_CATEGORIA_CHOICES,
+        default='SECUNDARIA',
+        help_text="Define si la categoría es una nota principal o un tipo de tarea"
+    )
 
     class Meta:
         managed = True
@@ -63,6 +82,22 @@ class CategoriaPrincipal(models.Model):
 
     def __str__(self):
         return self.nombre
+
+
+class CursoCategoria(models.Model):
+    id = models.AutoField(primary_key=True)
+    peso = models.DecimalField(max_digits=5, decimal_places=2)
+    id_categoria = models.ForeignKey('CategoriaPrincipal', on_delete=models.CASCADE, db_column='id_categoria')
+    id_curso = models.ForeignKey('Curso', on_delete=models.CASCADE, db_column='id_curso')
+
+    class Meta:
+        db_table = 'curso_categoria'
+        unique_together = ('id_curso', 'id_categoria')
+        managed = True  # Django no tocará esta tabla (ni crear ni migrar)
+
+    def __str__(self):
+        return f"{self.id_curso.nombre} - {self.id_categoria.nombre} ({self.peso}%)"
+
 
 class Tarea(models.Model):
     id_tarea = models.AutoField(primary_key=True)
@@ -102,11 +137,23 @@ class Tarea(models.Model):
         related_name='tareas',
         help_text="Categoría principal a la que pertenece esta tarea"
     )
+    TIPO_CHOICES = [
+        ('TAREA', 'Tarea (10%)'),
+        ('PRACTICA_GRUPAL', 'Práctica Grupal (15%)'),
+        ('PRACTICA_INDIVIDUAL', 'Práctica Individual (20%)'),
+        ('CONTROL', 'Control (25%)' ),
+    ]
+    tipo = models.CharField(
+        max_length=20,
+        choices=TIPO_CHOICES,
+        default='TAREA',
+        help_text="Tipo de tarea (Tarea o Control)"
+    )
     peso_porcentaje = models.DecimalField(
         max_digits=5,
         decimal_places=2,
         default=0.00,
-        help_text="Peso (%) que aporta esta tarea a la nota principal"
+        help_text="Peso porcentual de la tarea en la nota final"
     )
 
     class Meta:

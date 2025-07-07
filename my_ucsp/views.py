@@ -8,7 +8,7 @@ from django.http import HttpResponse
 from rdflib import Graph, Namespace, URIRef, Literal
 from rdflib.namespace import RDF, FOAF, XSD
 from django.contrib.auth.models import User
-from .models import Matricula, Curso, Horario, Tarea, Nota, CategoriaPrincipal
+from .models import Matricula, Curso, Horario, Tarea, Nota, CategoriaPrincipal, CursoCategoria
 from .forms import TareaForm
 
 def index(request): 
@@ -188,21 +188,24 @@ def add_tarea(request, id_curso):
     curso = get_object_or_404(Curso, pk=id_curso)
 
     if request.method == 'POST':
-        form = TareaForm(request.POST)
+        form = TareaForm(request.POST, curso=curso)
         if form.is_valid():
             tarea = form.save(commit=False)
             tarea.id_curso = curso
             tarea.id_usuario = request.user
             tarea.save()
-            messages.success(request, 'Tarea añadida correctamente.')
-            return redirect('curso-detalle', id_curso=id_curso)
+            messages.success(request, 'Tarea o prueba añadida correctamente.')
+            return redirect('curso-detalle', id_curso=curso.id_curso)
+        else:
+            messages.error(request, 'Por favor corrige los errores en el formulario.')
     else:
-        form = TareaForm()
+        form = TareaForm(curso=curso)
 
     return render(request, 'add_tarea.html', {
         'form': form,
         'curso': curso
     })
+
 
 @login_required
 def update_tarea(request, tarea_id):
@@ -249,18 +252,26 @@ def update_tarea(request, tarea_id):
 @login_required
 def editar_tarea(request, pk):
     tarea = get_object_or_404(Tarea, pk=pk, id_usuario=request.user)
+    curso = tarea.id_curso  # se usa varias veces, mejor tenerlo aparte
 
     if request.method == 'POST':
-        form = TareaForm(request.POST, instance=tarea)
+        form = TareaForm(request.POST, instance=tarea, curso=curso)
         if form.is_valid():
-            form.save()
-            return redirect('curso-detalle', id_curso=tarea.id_curso.id_curso)
+            try:
+                form.save()
+                messages.success(request, 'Tarea actualizada correctamente.')
+                return redirect('curso-detalle', id_curso=curso.id_curso)
+            except Exception as e:
+                messages.error(request, f'Ocurrió un error al guardar: {e}')
+        else:
+            messages.error(request, 'Por favor corrige los errores del formulario.')
     else:
-        form = TareaForm(instance=tarea)
+        form = TareaForm(instance=tarea, curso=curso)
 
     return render(request, 'my_ucsp/editar_tarea.html', {
         'form': form,
-        'tarea': tarea
+        'tarea': tarea,
+        'curso': curso  # útil para mostrar {{ curso.nombre }}
     })
 
 
@@ -287,35 +298,86 @@ def simular_nota(request):
     return render(request, 'tareas/add_nota.html')
 
 
+from django.shortcuts import get_object_or_404, render
+from .models import Curso, Matricula, Nota, CategoriaPrincipal, CursoCategoria
+
 def notas_curso(request, id_curso):
-    # 1) Obtén el curso
     curso = get_object_or_404(Curso, id_curso=id_curso)
+    matricula = get_object_or_404(Matricula, id_usuario=request.user, id_curso=curso)
 
-    # 2) Busca la matrícula de este usuario en ese curso
-    matricula = get_object_or_404(
-        Matricula,
-        id_usuario=request.user,
-        id_curso=curso
-    )
+    # ----------- 1. Subcategorías: Permanente 1 y 2 -----------
+    permanentes = CategoriaPrincipal.objects.filter(nombre__in=["Permanente 1", "Permanente 2"])
+    nota_permanente = []
+    suma_ponderada_subnotas = 0
+    total_peso_subnotas = 0
 
-    # 3) Carga todas las categorías ordenadas
-    categorias = CategoriaPrincipal.objects.order_by('id_categoria')
-
-    # 4) Agrupa las notas por categoría
-    notas_por_categoria = []
-    for cat in categorias:
+    for cat in permanentes:
         notas = Nota.objects.filter(
             id_matricula=matricula,
-            id_categoria=cat
+            id_categoria=cat,
+            id_tarea__isnull=False
         ).select_related('id_tarea')
-        notas_por_categoria.append((cat, notas))
 
-    # 5) Renderiza pasando el nuevo contexto
+        rel = CursoCategoria.objects.filter(id_curso=curso, id_categoria=cat).first()
+        peso_sub = rel.peso if rel else cat.peso_porcentaje
+        cat.peso = peso_sub
+
+        suma = sum(n.nota_obtenida * (n.peso_porcentaje / 100) for n in notas if n.nota_obtenida is not None)
+        suma_ponderada_subnotas += suma
+        total_peso_subnotas += peso_sub
+
+        nota_permanente.append((cat, notas))
+
+    # ------------ 2. Peso y contribución de Nota Permanente ------------
+
+    # Obtener categoría principal "Nota Permanente"
+    cat_nota_perma = CategoriaPrincipal.objects.get(nombre="Nota Permanente")
+    rel_perma = CursoCategoria.objects.filter(id_curso=curso, id_categoria=cat_nota_perma).first()
+    peso_permanente = rel_perma.peso if rel_perma else cat_nota_perma.peso_porcentaje
+
+    promedio_permanente = suma_ponderada_subnotas if total_peso_subnotas > 0 else None
+    contribucion_permanente = (promedio_permanente * peso_permanente / 100) if promedio_permanente is not None else 0
+
+    # ------------ 3. Otras categorías principales ------------
+
+    principales = CategoriaPrincipal.objects.filter(tipo='PRINCIPAL').exclude(
+        nombre__in=["Permanente 1", "Permanente 2", "Nota Permanente"]
+    )
+    otras_categorias = []
+    promedio_final = contribucion_permanente
+
+    for cat in principales:
+        notas = Nota.objects.filter(
+            id_matricula=matricula,
+            id_categoria=cat,
+            id_tarea__isnull=True  # solo evaluaciones, no tareas
+        )
+
+        rel = CursoCategoria.objects.filter(id_curso=curso, id_categoria=cat).first()
+        peso_cat = rel.peso if rel else cat.peso_porcentaje
+        cat.peso = peso_cat
+
+        total = sum(n.nota_obtenida for n in notas if n.nota_obtenida is not None)
+        cantidad = len(notas)
+        promedio_cat = (total / cantidad) if cantidad else None
+        contribucion = (promedio_cat * peso_cat / 100) if promedio_cat is not None else 0
+
+        if promedio_cat is not None:
+            promedio_final += contribucion
+
+        otras_categorias.append((cat, notas, promedio_cat, contribucion))
+
+    # ------------ 4. Render ------------
+
     return render(request, 'notas.html', {
         'curso': curso,
-        'notas_por_categoria': notas_por_categoria,
+        'nota_permanente': nota_permanente,
+        'peso_permanente': peso_permanente,
+        'promedio_permanente': promedio_permanente,
+        'contribucion_permanente': contribucion_permanente,
+        'otras_categorias': otras_categorias,
+        'promedio_final': promedio_final,
     })
-
 
 
 @login_required

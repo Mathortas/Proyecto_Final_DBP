@@ -2,71 +2,117 @@
 {% load static %}
 {% load widget_tweaks %}
 
-{% block title %}Editar Tarea - {{ tarea.nombre_tarea }}{% endblock %}
+{% block title %}Editar Tarea o Prueba - {{ tarea.nombre_tarea }}{% endblock %}
 
 {% block content %}
-<div class="container my-5">
-  <div class="row justify-content-center">
-    <div class="col-12 col-md-8 col-lg-6">
-      <div class="card shadow-sm">
-        <div class="card-header text-center">
-          <h4 class="mb-0">Editar tarea</h4>
+<div class="container mt-5" style="max-width: 500px;">
+  <div class="card shadow">
+    <div class="card-body">
+      <h3 class="mb-4">Editar Tarea o Prueba para {{ curso.nombre }}</h3>
+      <form method="post" id="tareaForm">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+
+        <!-- Nombre -->
+        <div class="mb-3">
+          <label for="{{ form.nombre_tarea.id_for_label }}" class="form-label">Nombre</label>
+          {{ form.nombre_tarea|add_class:"form-control" }}
+          {{ form.nombre_tarea.errors }}
         </div>
-        <div class="card-body">
-          <form method="post" action="{% url 'editar_tarea' pk=tarea.id_tarea %}" novalidate>
-            {% csrf_token %}
-            {{ form.non_field_errors }}
 
-            <div class="mb-3">
-              <label for="{{ form.nombre_tarea.id_for_label }}" class="form-label">Nombre</label>
-              {{ form.nombre_tarea|add_class:"form-control" }}
-              {{ form.nombre_tarea.errors }}
-            </div>
-
-            <div class="mb-3">
-              <label for="{{ form.fecha_entrega.id_for_label }}" class="form-label">Fecha de entrega</label>
-              {{ form.fecha_entrega|add_class:"form-control" }}
-              {{ form.fecha_entrega.errors }}
-            </div>
-
-            <div class="mb-3">
-              <label for="{{ form.estado.id_for_label }}" class="form-label">Estado</label>
-              {{ form.estado|add_class:"form-select" }}
-              {{ form.estado.errors }}
-            </div>
-
-            <div class="mb-3">
-              <label for="{{ form.descripcion.id_for_label }}" class="form-label">Descripción</label>
-              {{ form.descripcion|add_class:"form-control" }}
-              {{ form.descripcion.errors }}
-            </div>
-
-            <div class="mb-3">
-              <label for="{{ form.peso_porcentaje.id_for_label }}" class="form-label">Peso (%)</label>
-              {{ form.peso_porcentaje|add_class:"form-control" }}
-              {{ form.peso_porcentaje.errors }}
-            </div>
-
-            <div class="mb-3">
-              <label for="{{ form.id_categoria.id_for_label }}" class="form-label">Nota Principal</label>
-              {{ form.id_categoria|add_class:"form-select" }}
-              {{ form.id_categoria.errors }}
-            </div>
-
-            <div class="d-flex justify-content-between">
-              <a href="{% url 'curso-detalle' id_curso=tarea.id_curso.id_curso %}"
-                 class="btn btn-outline-secondary">
-                Cancelar
-              </a>
-              <button type="submit" class="btn btn-primary">
-                Guardar cambios
-              </button>
-            </div>
-          </form>
+        <!-- Fecha -->
+        <div class="mb-3">
+          <label for="{{ form.fecha_entrega.id_for_label }}" class="form-label">Fecha de entrega</label>
+          {{ form.fecha_entrega|add_class:"form-control" }}
+          {{ form.fecha_entrega.errors }}
         </div>
-      </div>
+
+        <!-- Descripción -->
+        <div class="mb-3">
+          <label for="{{ form.descripcion.id_for_label }}" class="form-label">Descripción</label>
+          {{ form.descripcion|add_class:"form-control" }}
+          {{ form.descripcion.errors }}
+        </div>
+
+        <!-- Nota Principal -->
+        <div class="mb-3">
+          <label for="{{ form.id_categoria.id_for_label }}" class="form-label">Nota Principal</label>
+          {{ form.id_categoria|add_class:"form-select" }}
+          {{ form.id_categoria.errors }}
+        </div>
+
+        <!-- Subcategoría -->
+        {% if not form.subcategoria.is_hidden %}
+        <div class="mb-3" id="subcategoria-container">
+          <label for="{{ form.subcategoria.id_for_label }}" class="form-label">Subcategoría Permanente</label>
+          {{ form.subcategoria|add_class:"form-select" }}
+          {{ form.subcategoria.errors }}
+        </div>
+        {% endif %}
+
+        <!-- Tipo -->
+        {% if not form.tipo.is_hidden %}
+        <div class="mb-3" id="tipo-container">
+          <label class="form-label">Tipo</label>
+          {% for radio in form.tipo %}
+            <div class="form-check">
+              {{ radio.tag }}
+              <label class="form-check-label" for="{{ radio.id_for_label }}">
+                {{ radio.choice_label|default:radio.choice_value }}
+              </label>
+            </div>
+          {% endfor %}
+          {{ form.tipo.errors }}
+        </div>
+        {% endif %}
+
+        <div class="d-flex justify-content-between">
+          <a href="{% url 'curso-detalle' id_curso=curso.id_curso %}" class="btn btn-outline-secondary">Cancelar</a>
+          <button type="submit" class="btn btn-primary">Guardar cambios</button>
+        </div>
+      </form>
+
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags }} mt-3">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
     </div>
   </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const selCat = document.getElementById("{{ form.id_categoria.id_for_label }}");
+  const subCont = document.getElementById("subcategoria-container");
+  const tipoCont = document.getElementById("tipo-container");
+
+  function actualizarCampos() {
+    if (!selCat || !selCat.value) return;
+    const nombre = selCat.options[selCat.selectedIndex].text.trim();
+    if (nombre === 'Nota Permanente') {
+      if (subCont) subCont.classList.remove('d-none');
+      if (tipoCont) tipoCont.classList.remove('d-none');
+    } else {
+      if (subCont) {
+        subCont.classList.add('d-none');
+        document.getElementById("{{ form.subcategoria.id_for_label }}").value = '';
+      }
+      if (tipoCont) {
+        tipoCont.classList.add('d-none');
+        document.querySelectorAll('#tipo-container input').forEach(i => i.checked = false);
+      }
+    }
+  }
+
+  if (selCat) {
+    selCat.addEventListener('change', actualizarCampos);
+    actualizarCampos();
+  }
+});
+</script>
 {% endblock %}
+
+
+
 

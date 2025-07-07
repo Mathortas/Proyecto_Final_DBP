@@ -10,11 +10,57 @@
     <a href="{% url 'curso-detalle' curso.id_curso %}" class="btn btn-outline-primary">← Volver al curso</a>
   </div>
 
-  {# —————— Sección: notas guardadas —————— #}
-  {% for categoria, notas in notas_por_categoria %}
+  {# ——— Sección: Nota Permanente ——— #}
+  {% if nota_permanente %}
+    <div class="card mb-4">
+      <div class="card-header bg-primary text-white d-flex justify-content-between">
+        <span>Nota Permanente</span>
+        <span class="badge bg-light text-dark">Peso: {{ peso_permanente }}%</span>
+      </div>
+      <ul class="list-group list-group-flush">
+        {% for categoria, notas in nota_permanente %}
+          <li class="list-group-item">
+            <strong>{{ categoria.nombre }} ({{ categoria.peso }}%)</strong>
+            <ul class="list-group list-group-flush ms-3">
+              {% if notas %}
+                {% for nota in notas %}
+                  <li class="list-group-item d-flex justify-content-between">
+                    <span>
+                      {% if nota.id_tarea %}
+                        📝 {{ nota.id_tarea.nombre_tarea }}
+                      {% else %}
+                        📊 {{ nota.nombre_nota }}
+                      {% endif %}
+                    </span>
+                    <span>
+                      Nota: {{ nota.nota_obtenida }} &nbsp;|&nbsp;
+                      Peso: {{ nota.peso_porcentaje }}%
+                    </span>
+                  </li>
+                {% endfor %}
+              {% else %}
+                <li class="list-group-item text-muted">— Sin subnotas —</li>
+              {% endif %}
+            </ul>
+          </li>
+        {% endfor %}
+      </ul>
+      {% if promedio_permanente is not None %}
+        <div class="card-footer bg-light">
+          <strong>Promedio de Nota Permanente:</strong> {{ promedio_permanente|floatformat:2 }}  
+          &nbsp;|&nbsp;  
+          <strong>Contribución:</strong> {{ contribucion_permanente|floatformat:2 }}%
+        </div>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {# ——— Sección: otras categorías PRINCIPALES ——— #}
+  {% for categoria, notas, promedio, contribucion in otras_categorias %}
     <div class="card mb-3">
-      <div class="card-header bg-secondary text-white">
-        {{ categoria.nombre }}
+      <div class="card-header bg-secondary text-white d-flex justify-content-between">
+        <span>{{ categoria.nombre }}</span>
+        <span class="badge bg-light text-dark">Peso: {{ categoria.peso }}%</span>
       </div>
       <ul class="list-group list-group-flush">
         {% if notas %}
@@ -34,36 +80,41 @@
             </li>
           {% endfor %}
         {% else %}
-          <li class="list-group-item text-muted">
-            — Sin notas registradas —
-          </li>
+          <li class="list-group-item text-muted">— Sin notas —</li>
         {% endif %}
       </ul>
+      {% if promedio is not None %}
+        <div class="card-footer bg-light">
+          <strong>Promedio:</strong> {{ promedio|floatformat:2 }}  
+          &nbsp;|&nbsp;  
+          <strong>Contribución:</strong> {{ contribucion|floatformat:2 }}%
+        </div>
+      {% endif %}
     </div>
   {% endfor %}
 
-  {# —————— Sección: simulador (opcional) —————— #}
+  {# ——— Resultado final ——— #}
+  {% if promedio_final is not None %}
+    <div class="alert alert-success mt-4">
+      <h4 class="mb-2">🎯 Promedio Final del Curso:</h4>
+      <p class="display-6">{{ promedio_final|floatformat:2 }} / 20</p>
+    </div>
+  {% endif %}
+
+  {# ——— Simulador de notas ——— #}
   <h3 class="mt-5">Simulación de Notas</h3>
   <div id="simulador-container">
-    <!-- Aquí tu lógica JS para crear inputs dinámicos -->
+    <!-- Aquí tu lógica JS para inputs dinámicos -->
   </div>
   <button class="btn btn-success mt-3" onclick="agregarNota()">Agregar Nota</button>
 </div>
 
-{# Tu script de simulador, si lo necesitas #}
 <script>
   let notaId = 0;
   function agregarNota() {
-    // … tu código existente …
+    // Tu código JavaScript para simular notas
   }
-  function eliminarNota(id) {
-    // … 
-  }
-  function toggleBloqueo(btn) {
-    // …
-  }
-  document.addEventListener('DOMContentLoaded', () => {
-    // opcionalmente, no añadir row por defecto
-  });
 </script>
 {% endblock %}
+
+
