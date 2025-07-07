@@ -36,25 +36,29 @@ class MatriculaViewSet(viewsets.ModelViewSet):
 # ✅ Tareas: SOLO las creadas por el usuario autenticado
 class TareaViewSet(viewsets.ModelViewSet):
     serializer_class = TareaSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
-        return Tarea.objects.filter(id_usuario=self.request.user)
+        user = self.request.user
+        if user.is_authenticated:
+            return Tarea.objects.filter(id_usuario=user)
+        return Tarea.objects.all()
 
     def perform_create(self, serializer):
-        # Asigna el usuario al crear
-        serializer.save(id_usuario=self.request.user)
+        if self.request.user.is_authenticated:
+            serializer.save(id_usuario=self.request.user)
+        else:
+            raise PermissionDenied("Debe autenticarse para crear tareas.")
 
-
-# ✅ Notas: SOLO las de matrículas del usuario autenticado
 class NotaViewSet(viewsets.ModelViewSet):
     serializer_class = NotaSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
-        return Nota.objects.filter(
-            id_matricula__id_usuario=self.request.user
-        )
+        user = self.request.user
+        if user.is_authenticated:
+            return Nota.objects.filter(id_matricula__id_usuario=user)
+        return Nota.objects.all()
 
 
 # ✅ Categorías: visibles para todos (o solo autenticados)
