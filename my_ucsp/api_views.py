@@ -1,3 +1,4 @@
+from django.core.exceptions import PermissionDenied
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -40,13 +41,16 @@ class TareaViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
+        print(">>> get_queryset() request.user =", user, "| is_authenticated =", user.is_authenticated)
         if user.is_authenticated:
             return Tarea.objects.filter(id_usuario=user)
         return Tarea.objects.all()
 
     def perform_create(self, serializer):
-        if self.request.user.is_authenticated:
-            serializer.save(id_usuario=self.request.user)
+        user = self.request.user
+        print(">>> perform_create() request.user =", user, "| is_authenticated =", user.is_authenticated)
+        if user.is_authenticated:
+            serializer.save(id_usuario=user)
         else:
             raise PermissionDenied("Debe autenticarse para crear tareas.")
 
